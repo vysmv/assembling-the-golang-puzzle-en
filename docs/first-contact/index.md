@@ -228,6 +228,7 @@ At least one - is main or main + a set of packages from our module or third part
 Applications become separate binaries, i.e., a separate binary is = to a separate application.
 
 Let's visualize this a little:
+
 (Slide #5)
 .
 ├── go.mod
