@@ -230,13 +230,15 @@ Applications become separate binaries, i.e., a separate binary is = to a separat
 Let's visualize this a little:
 
 (Slide #5)
-.
+
+```.
 ├── go.mod
 ├── go.sum
 ├── cmd/
 │   ├── api/      (application 1)
 │   └── worker/   (application 2)
 └── internal/
+```
 
 Here we see a directory containing a file called `go.mod`.
 This is a module.
