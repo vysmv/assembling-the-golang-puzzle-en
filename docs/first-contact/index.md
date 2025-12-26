@@ -146,191 +146,190 @@ For myself, I divided them into the following groups:
 - Tools and debugging
 - Service commands
 
-Иными словами, у нас есть слой оболочки или интерфейса, выраженный в наборе команд, и есть реальные утилиты, которые вызываются под капотом при выполнении команд оболочки.К примеру, программисту предоставляется команда интерфейса `go build -o result_file_name`, а под капотом будут вызваны реальные утилиты, которые расположены по пути `ls -la /usr/local/go/pkg/tool/linux_amd64/`. Например, это:
+In other words, we have a shell or interface layer expressed in a set of commands, and we have real utilities that are called under the hood when these commands are executed.
 
-- compile
-- link
-- asm
-- ...
+For example, a programmer is provided with the command interface `go build -o result_file_name` under the hood, real utilities located in the `ls -la /usr/local/go/pkg/tool/linux_amd64/` path will be called, for example,
 
-Эти утилиты входят в состав архива, который предоставляет официальный сайт.
-Я говорю об архиве, который я скачал для установки Go в начале видео.
+- compile,
+- link,
+- and so on.
 
-То есть основная суть всего вышесказанного означает, что в архиве есть набор основных инструментов и есть бинарник go, который является интерфейсом к ним.
+All these utilities are included in the archive provided by the official website. I am talking about the archive that I downloaded to install Go at the beginning of the video.
 
-Чтобы посмотреть все команды, доступные через интерфейс `go`, используется:
+In other words, the main point of all the above - is that the archive contains a set of basic tools and a GO binary, which is an interface to them.
+
+To see all the commands available through the `go` interface, use:
 
 ```go
 go help
 ```
 
-А чтобы посмотреть описание отдельной команды, например `build`, можно выполнить:
+To see the description of a specific command, such as `build`, you can run:
 
 ```go
 go help build
 ```
 
-Или, как вариант, с описаниями команд можно познакомиться на [официальном сайте](https://pkg.go.dev/cmd/go).
+Alternatively, you can find descriptions of the commands on the [official website](https://pkg.go.dev/cmd/go).
 
-В общем, я думаю, что базовая ясность в этом вопросе достигнута, и можно идти дальше.
+In general, I think we have achieved a basic understanding of this issue and can move on.
 
-### Основные сущности проекта
+### Main project entities
 
-Следующим шагом я решил посмотреть на Go с точки зрения усреднённого абстрактного проекта.
+The next step was to look at Go from the perspective of an average abstract project.
 
-И в этом процессе у меня сформировалась такая картина:
+And in the process, I formed the following picture.
 
-В роли некоторой целой единицы выступил модуль.
+The module acted as a kind of whole unit. And since this is the theoretical part, I will move on to the slides.
 
-И поскольку сейчас будет теоретическая часть, я пока перейду к слайдам.
+#### About modules
 
-#### О модулях
+(Slide #1)
 
-(Слайд №1)
-Модуль — это единица версионирования, сборки и управления зависимостями.
+A module is a unit of build versioning and dependency management.
 
-А теперь давайте попробуем вникнуть в суть этого определения.
+Now let's try to understand the essence of this definition.
 
-Сначала теоретически, а потом и практически.
+First theoretically, then practically.
 
-(Слайд №2)
-В общем, это директория с файлом go.mod, в котором хранится метаинформация модуля (например, его имя и зависимости).
+(Slide #2)
+In general, this is a directory with a Go mod file that stores module metadata, such as its name and dependencies.
 
-Модуль включает в себя все поддиректории от файла go.mod (до первого встреченного другого файла go.mod).
+The module includes all subdirectories from the go mod file to the first other go mod file encountered.
 
-По факту проект может состоять из более чем одного модуля (в этом случае проект будет содержать несколько директорий с отдельными файлами go.mod), но более распространённый вариант — это один проект = один модуль.
-Хотя при разработке публичного пакета, если у него появляется вторая версия, может понадобиться создать новую директорию с файлом go.mod. Мы это увидим на практике.
+In fact, a project can consist of more than one module. In this case, the project will contain several directories with separate go mod files.
+However, the more common option is one project = one module.
 
-Модуль обязательно имеет имя.
-Оно формируется по следующему условию:
+Although when developing a public project, if a second version appears, you may need to create a new directory with a go mod file. We will see this in practice.
 
-(Слайд №3)
+The module must have a name. It is formed according to the following condition:
 
-- Если модуль публикуется для внешнего использования → нужен доступный для go get URL (например, `GitHub/Bitbucket/GitLab`-подобный путь или что-то типа: `internal.company.local/myservice`).
+(Slide #3)
 
-(Слайд №4)
+- If the module is published for external use →  you need a URL accessible for go get, for example, (`GitHub, Bitbucket, Gitlab` or something like `internal.company.local/myservice`).
 
-- А вот если модуль локальный → любое имя.
+(Slide #4)
 
-То есть на старте мы должны ответить на вопрос: «Будет ли другой Go-проект когда-либо импортировать этот модуль?»
+- But if the module is local → any name is acceptable.
 
-Если:
+That is, at the start, we must answer the question: "Will another go project ever import this module?"
 
-❌ Нет → можно писать любое имя (crm, myapp, service)
-✔️ Да → обязательно использовать URL-путь (типа: github.com/user/service)
+If:
 
-А теперь затронем понятие «приложение». Модуль может включать в себя одно или несколько приложений.
+❌ No → you can write any name: crm, myapp, service.
+✔️ Yes → use a URL path such as `github.com/user/service`
 
-#### О приложениях
+Now let's touch on the concept of an application. A module can include one or more applications.
 
-Приложения, в свою очередь, состоят из пакетов.
-Как минимум один — это main, или main + набор пакетов нашего модуля или сторонних.
-Приложения становятся отдельными бинарниками.
-То есть отдельный бинарник = отдельному приложению проекта.
+#### About applications
 
-Давайте немного визуализируем это:
-(Слайд №5)
+Applications, in turn, consist of packages.
+At least one - is main or main + a set of packages from our module or third parties.
+Applications become separate binaries, i.e., a separate binary is = to a separate application.
+
+Let's visualize this a little:
+(Slide #5)
 .
 ├── go.mod
 ├── go.sum
 ├── cmd/
-│   ├── api/      (приложение 1)
-│   └── worker/   (приложение 2)
+│   ├── api/      (application 1)
+│   └── worker/   (application 2)
 └── internal/
 
-Тут мы видим некую директорию, а в ней файл `go.mod`.
-Это модуль.
-В нём есть директория `cmd`, в которой лежат два приложения (api и worker).
-Каждое из этих приложений будет компилироваться в отдельный бинарник.
-То есть каждый из них является отдельным пакетом `main` со своей точкой старта в виде функции `main`.
+Here we see a directory containing a file called `go.mod`.
+This is a module.
+It contains a directory called `cmd`, which contains two applications: api and worker.
+Each of these applications will be compiled into a separate binary.
+In other words, each of them is a separate `main` package with its own starting point in the form of a `main` function.
 
-#### О импорте и его правилах
+#### About imports and their rules
 
-А теперь поговорим об импорте пакетов и правилах, по которым он работает.
+Now let's talk about importing packages and the rules that govern how it works.
 
-##### О импорте публичных пакетов
+##### About importing public packages
 
-(Слайд №6)
-Если речь идёт о внешних публичных пакетах, то импортируем мы именно пакет,
-но в качестве зависимости выступит модуль.
-То есть ключевым моментом, который нужно понять, является то, что импорт всегда работает на уровне пакетов,
-а скачивание — на уровне модулей.
+(Slide #6)
+When it comes to external public packages, it is the package itself that is imported, but the module acts as a dependency.
+In other words, the key point to understand is that importing always works at the package level, while downloading works - at the module level.
 
-(Слайд №7)
-Это значит, что когда мы пишем в коде:
+(Slide #7)
+This means that when we write in the code:
 
 ```go
 import "github.com/user/project/utils"
 ```
 
-(Слайд №8)
-А после этого выполняем команду:
+(Slide #8)
+And then execute the command:
 
 ```bash
 go mod tidy
 ```
 
-То этим мы говорим, что хотим импортировать пакет `utils`, но по факту Go установит как зависимость и скачает весь модуль `github.com/user/project`.
+We are saying that we want to import the package `utils`, but in fact, go will install it as a dependency and download the entire module from `github.com/user/project`.
 
-##### О импорте локальных пакетов
+##### About importing local packages
 
-Напомню, это был взгляд на работу с импортом в отношении публичных внешних пакетов.
+Let me remind you that this was a look at working with imports in relation to public external packages.
 
-Если же нам нужно импортировать свои пакеты из своего локального проекта, то импорт просто производится через имя модуля.
+If we need to import our own packages from our local project, then the import is simply done through the module name.
 
-(Слайд №9)
-Например, если у нас есть модуль:
+(Slide #9)
+For example, if we have a `crm` module:
 
 ```go
 module crm
 ```
 
-То импорт какого-то внутреннего пакета производится так:
+Then importing an internal package is done as follows:
 
 ```go
 import "crm/service"
 ```
 
-##### О версиях и псевдо-версиях
+##### About versions and pseudo-versions
 
-А теперь поговорим о версиях.
-При импорте публичных пакетов мы часто сталкиваемся с тем, что их существует несколько версий.
-И нужно понимать, по каким правилам будет происходить эта работа.
-Это нужно как минимум для того, чтобы импортировать внешние пакеты и либо самостоятельно указывать нужную нам версию, либо понимать, какая подтянется по умолчанию.
-Ну и, естественно, это нужно для тех случаев, когда мы сами делаем публичный проект и планируем, что у него будут версии.
+Now let's talk about versions.
+When importing public packages, we often encounter situations where there are several versions available.
+And we need to understand the rules governing this process.
+This is necessary at least in order to import external packages and either specify the version we need ourselves or understand which one will be pulled in by default.
+And, of course, this is necessary for those cases when we ourselves are creating a public project and plan to have versions for it.
 
-(Слайд №10)
-Так вот, когда мы НЕ указываем, какая версия нам нужна (то есть после ключевого слова import идёт github.com/user/project/utils, но в пути нет `v2` или `v3`), то `go mod tidy` поступит одним из следующих вариантов:
+(Slide #10)
+So, when we DON'T specify which version we need, i.e., after the keyword import comes `github.com/user/project/utils` but there is no `V2`or`V3`in the path,`go mod tidy` will proceed with one of the following options:
 
-(Слайд №11)
+(Slide #11)
 
-1) Если у импортируемого модуля существует v1 → скачивается последняя доступная версия из диапазона v1.x.x
-2) Если v1 нет, но есть v0 → скачивается последняя версия из диапазона v0.x.x
-3) Если нет v0 и v1 → скачивается псевдоверсия
+1) If V1 of the imported module exists → the latest available version from the first version (v1.x.x) range is downloaded.
+2) If V1 is not available but V0 is →  the latest version from the zero version (v0.x.x) range is downloaded.
+3) If neither V0 nor V1 is available → a pseudo-version is downloaded.
 
-Псевдоверсия в конкретно этом примере будет снимком последнего коммита дефолтной ветки (обычно main или master), помеченным датой и хешем в качестве версии.
+In this particular example, the pseudo-version will be a snapshot of the last commit of the default branch. Usually, this is main or master, marked with a date and hash as the version.
 
-(Слайд №12)
-То есть сформированная зависимость будет иметь вид:
+(Slide #12)
+That is, the formed dependency will look like this:
 
 ```go
 require github.com/user/proj v0.0.0-<YYYYMMDDHHMMSS>-<commit_hash>
 ```
 
-Это: имя модуля, нулевая версия, дата и хеш коммита.
+Module name, zero version, date, and commit hash.
 
-(Слайд №13)
-В качестве дополнения скажу, что псевдоверсия может появиться даже тогда, когда у внешнего модуля уже есть версии, но при выполнении `go get` был указан не тег версии, а, например, имя ветки или коммит.
+(Slide #13)
+As an addition, I will say that a pseudo-version may appear even when the external module already has versions, but when executing   go get  , the branch name or commit was specified instead of the version tag.
 
 ```go
 go get github.com/user/project@dev
 ```
 
-В этом случае псевдоверсия будет указывать на последний коммит ветки dev. Мы также увидим это на практике.
+In this case, the pseudo-version will point to the last commit of the dev branch.
+We will also see this in practice.
 
-Итак, если вернуться к нашему правилу из трёх пунктов и показать это чуть более конкретно, получится такая картина.
+So, if we return to our three-point rule and illustrate it in more detail, we get the following picture.
 
-(Слайд №14)Допустим, у внешнего модуля есть следующий список версий:
+(Slide #14)
+Let's say that an external module has the following list of versions:
 
 - 0.1.14
 - 0.5.99
@@ -340,178 +339,174 @@ go get github.com/user/project@dev
 - 1.9.99
 - 2.1.22
 
-То при указании импорта без версии типа v2 скачана и установлена как зависимость будет версия 1.9.99,
-а именно самая последняя в пределах первой.
+When specifying an import without a version type V2, version 1.9.99 will be downloaded and installed as a dependency, namely the latest version within the first one.
 
-Но что тогда делать, если мы работаем с модулем, у которого много версий, и нам нужна какая-то конкретная — например, 2.2.33?
-(Слайд №15)
-В этом случае нужно сначала выполнить go get в следующем формате:
+But what if we are working with a module that has many versions and we need a specific one, for example, 2.2.33 ?
+
+(Slide #15)
+In this case, you first need to run go get in the following format.:
 
 ```bash
 go get github.com/user/proj/v2@v2.2.33
 ```
 
-(Слайд №16)
-Это приведёт к появлению зависимости в файле go.mod вида:
+(Slide #16)
+This will result in a dependency in the go.mod file of the form:
 
 ```bash
 require github.com/user/proj/v2 v2.2.33
 ```
 
-(Слайд №17)
-Далее мы можем — просто использовать импорт вида:
+(Slide #17)
+Then we can simply use the import:
 
 ```go
 import "github.com/user/proj/v2/utils"
 ```
 
-Тут я немного остановлюсь и обращу ваше внимание, что мы сейчас ввели
-новый способ по управлению зависимостями.
-Это `go get`.
+I will pause here for a moment and draw your attention to the fact that we have now introduced a new way of managing dependencies.
+This is `go get`.
 
-То есть вместо последовательности, описанной в начале разговора об импорте и его правилах:
-где сначала импорт пакета в коде,
-(Слайд №18)
-можно пойти другим путём. Сначала получить модуль, выполнив:
+That is, instead of the sequence described at the beginning of the conversation about importing and its rules, where first you import the package into the code and then execute `go get tidy`, you can simply take a different approach.
+
+(Slide #18)
+First, get the module by executing go get and the module address:
 
 ```bash
 go get github.com/user/project
 ```
 
-Это скачает модуль по вышеописанным правилам из трёх пунктов.
+This will download the module according to the three rules described above.
 
-(Слайд №19)
-И добавит зависимость в файл go.mod типа одной из представленных на слайде:
+(Slide 319)
+And add a go mod file dependency of the type shown on this slide:
 
 ```bash
 require github.com/user/project v1.X.X
 ```
 
-или
+or
 
 ```bash
 require github.com/user/project v0.X.X
 ```
 
-или
+or
 
 ```go
 require github.com/user/proj v0.0.0-<YYYYMMDDHHMMSS>-<commit_hash>
 ```
 
-(Слайд №20)
-А после этого мы уже можем импортировать в коде пакет из полученного ранее модуля:
+(Slide #20)
+After that, we can import the package from the previously obtained module into the code.
 
 ```go
-import "github.com/user/project/utils" [можно не произносить]
+import "github.com/user/project/utils"
 ```
 
-То есть это то же самое, но пакеты ставим мы сами, а не команда `go mod tidy`, которая просто ориентируется на имеющиеся импорты в коде.
+In other words, it's the same thing, but we install the packages ourselves, rather than the `go mod tidy` command, which simply refers to the existing imports in the code.
 
-Тут главное уловить, что у этих двух подходов правила по работе с импортом совпадают.
+The main thing to understand here is that these two approaches have the same rules for working with imports.
 
 Последнее, что добавлю, — это то, что модули при выполнении:
+The last thing I would like to add is that when executing:
 
 ```bash
 go get
 go mod tidy
 ```
 
-Будут расположены по пути, который хранится в переменной GOMODCACHE.
-В блоке с практикой мы это увидим.
+The modules will be located in the path stored in the GOMODCACHE variable.
+We will see this in the practical section.
 
-Возможно, в будущем я ещё покопаюсь в этой теме, так как есть ещё ряд любопытных вопросов, но я сознательно не стал в них углубляться.
-Кажется, что они могут немного подождать.
-Так что перейдём к практической части.
+Perhaps I will delve deeper into this topic in the future, as there are still a number of interesting questions, but I deliberately chose not to explore them further.
+It seems that they can wait a little longer.
+So now let's move on to the practical part.
 
-### Практика
+### Practice
 
-Но практику эту я начну с резюме и вытекающей из него структуры практики.
+But I will begin this practical part with a summary and the resulting project structure.
 
-Итак, резюмируем:
+So, let's summarize:
 
-1. Мы установили Go.
-2. Поняли, что бинарь go — это интерфейс над набором утилит, и всё это идёт из коробки.
-3. Посмотрели на Go с точки зрения типичного проекта.Из этого стало понятно, что:
+1. We installed GO.
+2. We understood that the Go binary - is an interface over a set of utilities, and all of this comes out of the box.
+3. We looked at it from the perspective of a typical project. From this, it became clear, that:
    
-   - у нас есть модуль (по сути — директория с файлом go.mod);
-   - в этом модуле может быть одно или более приложений.
-     Каждое приложение — это самостоятельный пакет main, из которого получается самостоятельный бинарник.
-4. Поняли, что у модуля должно быть имя и есть правила его формирования.
-5. Я затронул импорт.
-   На первый взгляд, этот переход немного резковатый.
-   Как будто бы выбивается из контекста.
-   Но дело в том, что, пытаясь разобраться в логике работы пакетов и модулей,
-   я понял, что разбираться тут нужно именно комплексно.
+   - we have a module (this is essentially a directory with a go mod file);
+   - module can contain one or more applications;
+   - each application is a separate main package, from which a separate binary is obtained.
+4. We understand that a module can have a name and that there are rules for forming it.
+5. Here I touched on imports.
+   At first glance, this transition seems a little abrupt, as if it were out of context.
+   Well, the thing is, while trying to understand the logic behind packages and modules, I realized that this issue needs to be addressed comprehensively.
+   Let's take another look at the whole picture.
    
-   У нас есть модуль, в нём приложение (это пакет main), пакет main может импортировать другие пакеты, те, в свою очередь, тоже могут импортировать другие пакеты.
+   We have a module with an application in it. This is the main package. The main package can import other packages. That is, in turn, they can also import other packages.
    
-   Пакеты, предназначенные для импорта, могут быть частью нашего модуля и лежать в директориях типа internal или pkg, а могут и тянуться по сети.
+   Packages intended for import can be part of our module and reside in directories such as internal or pkg, or they can be pulled from the network.
    
-   Также нужно понимать, что, когда мы импортируем внешний пакет, Go при этом скачает на диск весь его модуль,
-   а именно — в директорию, указанную в GOMODCACHE. Но на этапе компиляции из этого модуля подтянется только указанный пакет.
+   It is also important to understand that when we import an external package, Go downloads its entire module to disk, specifically to the directory - specified in the GOMODCACHE variable.
    
-   Так вот, ко всему этому нужно добавить то, что пакеты могут иметь версии.
-   А это порождает определённые правила, по которым работает импорт внешних и локальных пакетов, и определяет, как будет устроен наш модуль, если мы ведём разработку, например, библиотеки, у которой будут версии.
-   
-   Вот так я и пришёл к тому, что нужно именно такое понимание.
+   It is important to note that packages may have versions.
+   Which generates certain rules governing the import of external and local packages and determines how our module will be structured if we are developing, for example, a library that will have versions.
 
-А теперь давайте структурируем практику.
+That is precisely how I came to the conclusion that this is the understanding that is needed here.
 
-Для визуализации вставлю заголовки блоков в терминал:
-Блок 1. Один проект = один модуль + несколько приложений
-Блок 2. Импорт на уровне пакетов, скачивание на уровне модулей
-Блок 3. Как Go выбирает версию, если мы её явно не указываем
-Блок 4. Псевдоверсии: при импорте ветки dev
-Блок 5. Установка конкретной версии
+Now let's structure the practice.
 
-Первым блоком мы посмотрим, как один проект равен одному модулю и в нём есть несколько приложений.
-Вторым блоком будет демонстрация того, что в коде мы импортируем пакет, а подтянется весь модуль.
-Третьим блоком мы посмотрим, как Go ведёт себя, когда мы импортируем пакеты, не указывая нужную нам версию, и затронем дополнительное понятие псевдоверсии.
-Четвёртым блоком, в качестве дополнения, посмотрим, как могут появиться псевдоверсии, если импортировать не по тегу, а по ветке.
-В пятом блоке посмотрим, как импортировать конкретную версию из перечня имеющихся.
+For visualization, I will insert block headers into the terminal.
 
-Хорошо, а теперь перейдём к реализации.
+Block 1. One project = one module + several applications
+Block 2. Importing at the package level, downloading at the module level
+Block 3. How Go chooses a version if we don't explicitly specify it
+Block 4. Pseudo-versions: when importing the dev branch
+Block 5. Installing a specific version
 
-#### Блок 1 Один проект = один модуль + несколько приложений
+So, in the first block, we will see how one project is equal to one module and how it can contain several applications.
+The second block will demonstrate that we import a package in the code, but the entire module is actually pulled in.
+In the third block, we will see how Go behaves when we import packages without specifying the version we need, and we will touch on the additional concept of pseudo-versions.
+In the fourth block, as an addition, we will see how pseudo-versions can appear if we import by branch rather than by tag.
+And in the last, fifth block, we will see how to import a specific version from the list of available ones.
 
-Нашей первой целью будет почувствовать модуль как единицу проекта и отдельные бинарники как приложения.
-Какой-то логики в функционале проекта не будет.
-Только вызовы функций-пустышек, чтобы увидеть, что схема работает так, как мы ожидаем.
+Okay, let's move on to the implementation.
 
-У нас сейчас есть только пустая директория first-contact.
-Это условно директория нашего проекта.
-И для создания структуры проекта я выполню скрипт на bash.
+#### Block 1. One project = one module + several applications
 
-По сути, я просто заскриптовал то, что мог бы делать руками в течение объяснения.
-То есть я пошёл немного иначе.
-Я буду показывать скрипт или его фрагмент и рассказывать, что он сделает.
-Потом — его запуск и анализ результатов.
+Our first goal will be to experience the module as a project unit and individual binaries as an application.
+There will be no logic in the functionality of this project, only calls to dummy functions to see that the scheme works as we expect.
+We currently only have an empty first-contact directory.
 
-В общем, давайте создадим файл `block1.bash`
-и вставим туда код.
+This is the conditional directory for our project.
+To create the project structure, I will run a bash script.
 
-Если посмотреть на код, то тут я:
+Essentially, I just scripted what I could have done manually throughout the explanation.
+In other words, I just took a slightly different approach.
+I will show the script or fragments of it and explain what it does, and then - we will run it and analyze the result.
+
+In general, let's create a file called `block1.bash`
+and paste the code into it.
+
+If you look at the code we just pasted, the first thing I do is:
 
 ```bash
-#инициализирую модуль обычным локальным именем
+#initialize the module with a regular local name
 go mod init first-contact
-#создаю набор директорий
+#create a set of directories
 mkdir -p cmd/api
 mkdir -p cmd/worker
 mkdir -p internal/service
 ```
 
-Тут сразу сделаю ремарку. То, что я сейчас делаю, — это НЕ канонический паттерн по архитектуре проекта на Go.
-Хотя такой существует. Но думаю, что его стоит разбирать вообще отдельной темой.
-Я просто беру его фрагменты, подходящие под мою демонстрацию.
+What I am doing now is not a canonical pattern for GO project architecture, although such a pattern does exist, but I think it is worth discussing as a separate topic.
+I just take fragments that fit my demonstration.
 
-Например, директория cmd, в том виде, как я это создаю в скрипте, — это принятый в сообществе паттерн, но не обязательный.
-А вот директория internal имеет специальный функционал. Пакеты, размещённые в ней, доступны только внутри нашего модуля (точнее — внутри родительского каталога и его подкаталогов), но закрыты для внешнего мира.
-Имя директории internal является зарезервированным механизмом Go и имеет специальное значение.
+For example, the cmd directory as I create it in the script is a pattern accepted in the community, but not mandatory.
+The internal directory, on the other hand, has special functionality. Packages located in it are only accessible within our module, or more precisely, within the parent directory and its subdirectories, but are closed to the outside world.
+The name of the Internal directory is a reserved mechanism and has a special meaning.
 
 ```bash
-#далее создаем файл сервиса и записываем туда код
+#create a service file and write the code there
 cat << 'EOF' > internal/service/service.go
 package service
 
@@ -523,12 +518,11 @@ func SayHello(name string) {
 EOF
 ```
 
-Мы тут видим, что главный файл пакета называется так же, как и директория пакета.
+We can see here that the main file of the package has the same name as the package directory.
 
-А в самом коде видим имя пакета, импорт пакета из стандартной библиотеки Go и функцию.
-А вот функции `main` тут нет.
+And in the code itself, we see the package name, the import of the package from the standard Go library, and the function. But there is no main function here.
 
-Следующим шагом создаём файл cmd/api/main.go и запишем туда код:
+The next step is to create the file cmd/api/main.go and also write the code there:
 
 ```bash
 cat << 'EOF' > cmd/api/main.go
@@ -544,10 +538,10 @@ func main() {
 EOF
 ```
 
-Тут мы создаём пакет main для приложения api и импортируем пакет service из нашего модуля.
-В теле функции main просто вызываем функцию из пакета service.
+Here we create a main package for the api application and import the service package from our module.
+In the body of the main function, we simply call the function from the service package.
 
-После этого создаём второе приложение cmd/worker/main.go и записываем туда код:
+Then we create a second application in the cmd/worker/main.go and write the code there as well.
 
 ```bash
 cat << 'EOF' > cmd/worker/main.go
@@ -563,12 +557,12 @@ func main() {
 EOF
 ```
 
-В коде мы создаём пакет main для приложения worker и импортируем пакет service из нашего модуля.
-В теле функции main также вызываем функцию из пакета service.
+In the code, we create a main package for the worker application and import the service package from our module into the body of the main function.
+We also call a function from the service package.
 
-Следующим шагом мы выполняем сборку этих приложений.
-То есть мы сначала набросали структуру, а потом сразу билдим это в бинарники.
-Для этого выполняется:
+The next step is to build these applications.
+That is, we first sketched out the structure, and then immediately built it into a binary.
+To do this, we execute the following three commands:
 
 ```bash
 mkdir -p bin
@@ -576,23 +570,25 @@ go build -o bin/api ./cmd/api
 go build -o bin/worker ./cmd/worker
 ```
 
-Давайте запустим этот скрипт.
-Выполним в терминале `bash block1.bash`.
-После его выполнения можно увидеть, что создана вся описанная структура.
+Let's run this script.
+To do this, execute bash block1.bash in the terminal `bash block1.bash`.
 
-Тут есть две директории с точкой входа в код приложения (это api и worker) и один внутренний пакет service.
-И есть файл go.mod.
+After executing the script, you can see that the entire structure described earlier has been created.
 
-Если также посмотреть в директорию bin, то увидим, что у нас появились два бинарника.
-Каждый — это отдельное приложение в финальном виде.
+That is, we have two directories with entry points into the application code (api and worker) and one internal service package.
+There is also a go mod file.
 
-И мы можем запустить в терминале эти приложения, например, просто выполнив `./bin/api`.
-В результате увидим строку "Hello, from API!", а значит, всё корректно отработало.
+If we also look at the bin directory, we will see that we now have two separate binaries.
 
-То есть цель, поставленная перед первым блоком, достигнута.
-Идём дальше.
+Each one - is a separate application in its final form.
 
-Финальный вид скрипта:
+And now, of course, we can run these applications in the terminal, for example, by simply executing the call at `./bin/api`.
+
+Let's run this binary and see the string 'Hello from API' as a result.
+This means that everything worked correctly. In other words, we have achieved the goal set for the first block.
+Let's move on.
+
+Final version of the script:
 
 ```bash
 #!/usr/bin/env bash
