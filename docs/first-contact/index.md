@@ -216,8 +216,9 @@ That is, at the start, we must answer the question: "Will another go project eve
 
 If:
 
-❌ No → you can write any name: crm, myapp, service.
-✔️ Yes → use a URL path such as `github.com/user/service`
+   ❌ No → you can write any name: crm, myapp, service.
+
+   ✔️ Yes → use a URL path such as `github.com/user/service`
 
 Now let's touch on the concept of an application. A module can include one or more applications.
 
@@ -702,7 +703,6 @@ This means that the block's goal has been achieved: we saw that we are importing
 This means we can move on.
 
 #### Block 3. How Go chooses a version if we don't explicitly specify it
-
 
 Here, our goal will be to demonstrate the rules for selecting a version (v1 → v0 → pseudo-version).
 
