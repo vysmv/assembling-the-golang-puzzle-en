@@ -7,4 +7,5 @@
 ## 📖 Menu
 
 - 📜 [Learning Go. Part 1: Installation, go toolchain, modules, packages, and versions](docs/first-contact/index.md)
+- 📜 [Learning Go. Part 2: Documentation as a tool](docs/documentation-as-tool/index.md)
 
