@@ -9,7 +9,7 @@ Go - is a new language for me.
 That means this playlist will include videos in which I simply **recorded** my journey in learning Go.
 
 In this process, the first thing I try to do is get a general idea of the technology.
-I don't like teaching a "spherical language in a vacuum", starting with syntax or going down the path of pure practice without any systematization.
+I don't like learning a "spherical language in a vacuum", starting with syntax or going down the path of pure practice without any systematization.
 
 Although I don't think it's a bad method. It just doesn't suit me.
 
